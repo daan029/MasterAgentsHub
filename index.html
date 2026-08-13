@@ -276,6 +276,66 @@ html,body{
 .panel .close{position:absolute;top:14px;right:14px;width:22px;height:22px;border:none;background:transparent;color:var(--text-dim);font-size:16px;line-height:1;cursor:pointer;font-family:inherit;}
 .panel .close:hover{color:var(--text);}
 
+.panel .stats-toggle{
+  margin-top:2px;
+  border-top:1px solid var(--line);
+  padding-top:10px;
+}
+.panel .stats-toggle[open]{padding-bottom:2px;}
+.panel .stats-toggle summary{
+  cursor:pointer;
+  list-style:none;
+  font-size:10.5px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--hub);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  user-select:none;
+}
+.panel .stats-toggle summary::-webkit-details-marker{display:none;}
+.panel .stats-toggle summary::before{
+  content:"▸";
+  display:inline-block;
+  font-size:9px;
+  transition:transform .15s ease;
+}
+.panel .stats-toggle[open] summary::before{transform:rotate(90deg);}
+.panel .stats-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px 14px;
+  margin-top:12px;
+}
+.panel .stat-tile{
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:3px;
+  background:rgba(255,255,255,.02);
+}
+.panel .stat-tile .stat-label{
+  font-size:9px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--text-dim);
+}
+.panel .stat-tile .stat-value{
+  font-family:'Rajdhani',sans-serif;
+  font-weight:700;
+  font-size:18px;
+  color:var(--text);
+  margin-top:2px;
+  font-variant-numeric:tabular-nums;
+}
+.panel .stats-note{
+  font-size:9.5px;
+  line-height:1.5;
+  color:var(--text-dim);
+  margin-top:10px;
+  opacity:.8;
+}
+
 @media (max-width: 640px){
   .brand{top:16px;left:16px;}
   .brand .eyebrow{font-size:9px;letter-spacing:.22em;}
@@ -338,6 +398,11 @@ html,body{
     <h2 id="panelName">&mdash;</h2>
     <div class="status-row" id="panelStatus"></div>
     <p id="panelDetail"></p>
+    <details class="stats-toggle" id="panelStatsToggle">
+      <summary>More data</summary>
+      <div class="stats-grid" id="panelStatsGrid"></div>
+      <div class="stats-note" id="panelStatsNote"></div>
+    </details>
     <div class="meta"><span>Last active</span><b id="panelLastActive">&mdash;</b></div>
   </div>
 </div>
@@ -354,7 +419,14 @@ html,body{
       role: "Trinket Tales content pipeline",
       status: "offline",
       detail: "Generates, assembles and publishes Trinket Tales YouTube Shorts on a Mon/Wed/Fri schedule, staying inside a fixed monthly credit budget.",
-      lastActive: "Not yet deployed"
+      lastActive: "Not yet deployed",
+      stats: [
+        { label: "Videos posted", value: "1" },
+        { label: "Total views", value: "0" },
+        { label: "Last run", value: "13 Aug 2026" },
+        { label: "Next run", value: "14 Aug, 16:00*" }
+      ],
+      statsNote: "*Planned Mon/Wed/Fri 16:00 cadence — the scheduled task on the production laptop isn't deployed yet, so this isn't firing automatically yet. Figures as of 13 Aug 2026; update by hand until this is wired to live data."
     }
   ];
 
@@ -510,6 +582,20 @@ html,body{
       '<span class="dot" style="background:' + color + ';color:' + color + '"></span><span style="color:' + color + '">' + STATUS_LABEL[agent.status] + '</span>';
     document.getElementById("panelDetail").textContent = agent.detail;
     document.getElementById("panelLastActive").textContent = agent.lastActive || "—";
+
+    var statsToggle = document.getElementById("panelStatsToggle");
+    if (agent.stats && agent.stats.length) {
+      var grid = document.getElementById("panelStatsGrid");
+      grid.innerHTML = agent.stats.map(function(s) {
+        return '<div class="stat-tile"><div class="stat-label">' + s.label + '</div><div class="stat-value">' + s.value + '</div></div>';
+      }).join("");
+      document.getElementById("panelStatsNote").textContent = agent.statsNote || "";
+      statsToggle.style.display = "";
+      statsToggle.open = false;
+    } else {
+      statsToggle.style.display = "none";
+    }
+
     panel.classList.add("open");
   }
 
