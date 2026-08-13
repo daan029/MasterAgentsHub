@@ -152,15 +152,27 @@ html,body{
   border-radius:50%;
   background:radial-gradient(circle at 34% 28%, var(--hub-2) 0%, var(--hub) 42%, var(--hub-dark) 100%);
   box-shadow:
-    0 0 60px 14px rgba(245,185,66,.45),
-    0 0 140px 40px rgba(245,185,66,.18),
+    0 0 40px 6px rgba(245,185,66,.5),
     inset -14px -14px 30px rgba(0,0,0,.4),
     inset 8px 8px 18px rgba(255,240,200,.35);
+}
+/* separate, cheap glow layer — only transform/opacity animate, never
+   box-shadow, to avoid a repaint-heavy animation ghosting on mobile Safari */
+.hub-glow{
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:104px;
+  height:104px;
+  margin:-52px 0 0 -52px;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(245,185,66,.55) 0%, rgba(245,185,66,0) 70%);
   animation:breathe 5s ease-in-out infinite;
+  pointer-events:none;
 }
 @keyframes breathe{
-  0%,100%{box-shadow:0 0 60px 14px rgba(245,185,66,.45),0 0 140px 40px rgba(245,185,66,.18),inset -14px -14px 30px rgba(0,0,0,.4),inset 8px 8px 18px rgba(255,240,200,.35);}
-  50%{box-shadow:0 0 74px 18px rgba(245,185,66,.6),0 0 160px 46px rgba(245,185,66,.24),inset -14px -14px 30px rgba(0,0,0,.4),inset 8px 8px 18px rgba(255,240,200,.4);}
+  0%,100%{transform:scale(1.35);opacity:.55;}
+  50%{transform:scale(1.7);opacity:.85;}
 }
 
 .node{
@@ -293,8 +305,9 @@ html,body{
     <svg class="link-svg" id="links"></svg>
     <div class="ring" id="ring1"></div>
     <div class="ring" id="ring2"></div>
+    <div class="hub-glow"></div>
     <div class="hub"></div>
-    <div class="label hub"><div class="name">DAAN'S MASTER AGENTS</div></div>
+    <div class="label hub" style="top:50%;left:50%;"><div class="name">DAAN'S MASTER AGENTS</div></div>
     <div id="nodes"></div>
     <div id="labels"></div>
   </div>
@@ -366,7 +379,7 @@ html,body{
     }
   }
 
-  function buildLayer(id, count, minR, maxR, minA, maxA, withNebulae) {
+  function buildLayer(id, count, minR, maxR, minA, maxA) {
     var layer = document.getElementById(id);
     var c = document.createElement("canvas");
     c.style.width = "100%"; c.style.height = "100%"; c.style.position = "absolute";
@@ -377,24 +390,10 @@ html,body{
     c2.style.width = "100%"; c2.style.height = "100%"; c2.style.position = "absolute";
     layer.appendChild(c2);
     paintStars(c2, Math.round(count * 0.08), minR, maxR + 0.4, 0.4, 0.7, Math.random() > 0.5 ? "#9fb4ff" : "#ffd8a8");
-
-    if (withNebulae) {
-      [["#2a3a6b", 15, 12], ["#4a2f5e", 78, -20]].forEach(function(cfg) {
-        var neb = document.createElement("div");
-        neb.className = "nebula";
-        var size = 480;
-        neb.style.width = size + "px";
-        neb.style.height = size + "px";
-        neb.style.left = (1200 + cfg[1] * 6) + "px";
-        neb.style.top = (1200 + cfg[2] * 6) + "px";
-        neb.style.background = "radial-gradient(circle, " + cfg[0] + " 0%, transparent 70%)";
-        layer.appendChild(neb);
-      });
-    }
   }
-  buildLayer("starFar", 650, 0.5, 1.1, 0.25, 0.6, true);
-  buildLayer("starMid", 320, 0.7, 1.5, 0.35, 0.8, false);
-  buildLayer("starNear", 150, 1.0, 2.1, 0.5, 1.0, false);
+  buildLayer("starFar", 650, 0.5, 1.1, 0.25, 0.6);
+  buildLayer("starMid", 320, 0.7, 1.5, 0.35, 0.8);
+  buildLayer("starNear", 150, 1.0, 2.1, 0.5, 1.0);
 
   // sprinkle a handful of twinkling stars in the near layer for life
   var twinkleHost = document.getElementById("starNear");
