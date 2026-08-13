@@ -573,19 +573,21 @@ html,body{
   // ---------------------------------------------------------------------
   // Interaction: drag to orbit camera, click node for detail panel
   // ---------------------------------------------------------------------
-  // Bounded tilt, not a free orbit: enough drag to feel 3D (parallax on
-  // the hub/nodes) without ever letting the view spin past the readable
-  // front-facing composition and lose orientation.
-  var AZ_MIN = -0.62, AZ_MAX = 0.62;
-  var POLAR_MIN = 0.95, POLAR_MAX = 1.62;
-  var azimuth = 0.15, polar = 1.3, radius = 26;
+  // Horizontal is free (agents sit at different angles around the hub —
+  // panning all the way around is how you reach them, especially once
+  // more than one is added). Vertical is tightly capped: a little tilt
+  // reads as 3D depth, but tipping toward top-down/bottom-up would break
+  // the composition, so it only ever wiggles a small amount.
+  var POLAR_CENTER = 1.3;
+  var POLAR_MIN = 1.18, POLAR_MAX = 1.42;
+  var azimuth = 0.15, polar = POLAR_CENTER, radius = 26;
   var dragging = false, lastX = 0, lastY = 0;
   var userOffsetActive = false;
   var activePointers = {};
   var lastPinchDist = 0;
 
   function updateCamera() {
-    var az = Math.max(AZ_MIN, Math.min(AZ_MAX, azimuth));
+    var az = azimuth;
     var pl = Math.max(POLAR_MIN, Math.min(POLAR_MAX, polar));
     var r = Math.max(16, Math.min(40, radius));
     camera.position.x = r * Math.sin(pl) * Math.sin(az);
@@ -699,10 +701,10 @@ html,body{
     rings.forEach(function(r, i) { r.rotation.z = t * (0.1 + i * 0.05); });
 
     if (!userOffsetActive && !dragging) {
-      // gentle ambient sway, never a full rotation — keeps the front-facing
-      // composition readable instead of spinning away out of view
-      azimuth = Math.sin(t * 0.12) * 0.22;
-      polar = 1.3 + Math.sin(t * 0.09) * 0.08;
+      // slow continuous pan so every agent drifts into view over time;
+      // vertical only ever wiggles a touch
+      azimuth += 0.0012;
+      polar = POLAR_CENTER + Math.sin(t * 0.09) * 0.08;
       updateCamera();
     }
 
