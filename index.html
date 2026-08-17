@@ -560,6 +560,16 @@ html,body{
         agent.stats[1].value = res.totalViews.toLocaleString("en-US");
         agent.stats[2].value = res.lastPublished ? ytFormatDate(res.lastPublished) : "—";
         agent.statsNote = "Live from YouTube (" + agent.youtube.handle + ") — videos posted, total views and last-published date refresh every time this page loads, independent of whether this agent's machine is on.";
+        // Online here means "we just heard back from YouTube for this
+        // agent" — NOT "the production automation is currently running".
+        // Busy/Error need a real signal from the pipeline itself (it
+        // isn't deployed unattended yet for either agent), so don't set
+        // those here — only flip away from the default "offline" once
+        // live data has actually come back.
+        if (agent.status !== "busy" && agent.status !== "error") {
+          agent.status = "online";
+        }
+        renderNodes();
         if (currentPanelAgentId === agent.id) openPanel(agent);
       }).catch(function(err) {
         console.error("Live YouTube stats fetch failed for " + agent.id, err);
@@ -567,6 +577,10 @@ html,body{
         agent.stats[1].value = "N/A";
         agent.stats[2].value = "N/A";
         agent.statsNote = "Couldn't reach the YouTube API just now (offline, or the key/quota needs checking) — figures unavailable rather than shown stale. Reload the page to retry.";
+        if (agent.status !== "busy" && agent.status !== "error") {
+          agent.status = "offline";
+        }
+        renderNodes();
         if (currentPanelAgentId === agent.id) openPanel(agent);
       });
     });
@@ -648,9 +662,7 @@ html,body{
   var svg = document.getElementById("links");
   var NS = "http://www.w3.org/2000/svg";
 
-  var defs = document.createElementNS(NS, "defs");
-  svg.appendChild(defs);
-
+  var defs;
   var nodeRecords = [];
 
   function buildNode(agent, index, total) {
@@ -721,12 +733,27 @@ html,body{
     nodeRecords.push({ agent: agent, x: x, y: y });
   }
 
-  AGENTS.forEach(function(agent, i) { buildNode(agent, i, AGENTS.length); });
+  // (Re)builds every node/label/link from the current AGENTS array. Called
+  // once at load, and again whenever a live fetch changes an agent's
+  // status (e.g. offline -> online once we've actually heard back from
+  // YouTube) so the sphere color/glow and status chip stay in sync
+  // without a full page reload.
+  function renderNodes() {
+    nodesHost.innerHTML = "";
+    labelsHost.innerHTML = "";
+    svg.innerHTML = "";
+    defs = document.createElementNS(NS, "defs");
+    svg.appendChild(defs);
+    nodeRecords = [];
 
-  document.getElementById("totalCount").textContent = AGENTS.length;
-  document.getElementById("onlineCount").textContent =
-    AGENTS.filter(function(a) { return a.status === "online" || a.status === "busy"; }).length;
+    AGENTS.forEach(function(agent, i) { buildNode(agent, i, AGENTS.length); });
 
+    document.getElementById("totalCount").textContent = AGENTS.length;
+    document.getElementById("onlineCount").textContent =
+      AGENTS.filter(function(a) { return a.status === "online" || a.status === "busy"; }).length;
+  }
+
+  renderNodes();
   refreshLiveYouTubeStats();
 
   var panel = document.getElementById("panel");
