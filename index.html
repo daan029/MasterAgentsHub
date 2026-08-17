@@ -420,15 +420,126 @@ html,body{
       status: "offline",
       detail: "Generates, assembles and publishes Trinket Tales YouTube Shorts on a Mon/Wed/Fri schedule, staying inside a fixed monthly credit budget.",
       lastActive: "Not yet deployed",
+      youtube: { handle: "TrinketTalesYT" },
       stats: [
-        { label: "Videos posted", value: "1" },
-        { label: "Total views", value: "0" },
-        { label: "Last run", value: "13 Aug 2026" },
-        { label: "Next run", value: "14 Aug, 16:00*" }
+        { label: "Videos posted", value: "…" },
+        { label: "Total views", value: "…" },
+        { label: "Last published", value: "…" },
+        { label: "Next scheduled run", value: "Manual only — Mon/Wed/Fri auto-schedule not deployed yet" }
       ],
-      statsNote: "*Planned Mon/Wed/Fri 16:00 cadence — the scheduled task on the production laptop isn't deployed yet, so this isn't firing automatically yet. Figures as of 13 Aug 2026; update by hand until this is wired to live data."
+      statsNote: "Loading live figures from YouTube…"
     }
   ];
+
+  // ---------------------------------------------------------------------
+  // Live YouTube stats — fetched fresh every page load, straight from the
+  // browser to the public YouTube Data API. Deliberately NOT routed through
+  // the production laptop/agent: this is what makes "videos posted" and
+  // "total views" stay accurate even when that machine is asleep or offline
+  // (see [[project_master_agents_hub]] memory — this was a deliberate
+  // earlier deferral, wired up 2026-08-17).
+  //
+  // Read-only public data key, restricted (API restrictions -> YouTube Data
+  // API v3 only) in Google Cloud Console under the same "trinkettales"
+  // project as the uploader's OAuth client. This key can only read public
+  // channel/video data — it cannot upload, delete, or modify anything, so
+  // shipping it inside client-side HTML in a private repo is an acceptable
+  // trade-off. Do not reuse it for anything beyond public reads.
+  //
+  // >>> PASTE_YOUR_YOUTUBE_API_KEY_HERE below, replacing the placeholder
+  // string (keep the quotes). <<<
+  // ---------------------------------------------------------------------
+  var YOUTUBE_API_KEY = "AIzaSyARUbxjVoOjlaryPzVDa_or8MjMKEHKMS4";
+  var YT_API_BASE = "https://www.googleapis.com/youtube/v3/";
+
+  function ytFormatDate(iso) {
+    var d = new Date(iso);
+    var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return d.getUTCDate() + " " + months[d.getUTCMonth()] + " " + d.getUTCFullYear();
+  }
+
+  function ytFetchAllPlaylistItems(playlistId, pageToken, acc) {
+    acc = acc || [];
+    var url = YT_API_BASE + "playlistItems?part=contentDetails&maxResults=50&playlistId=" +
+      encodeURIComponent(playlistId) + "&key=" + YOUTUBE_API_KEY;
+    if (pageToken) url += "&pageToken=" + pageToken;
+    return fetch(url).then(function(r) {
+      if (!r.ok) throw new Error("playlistItems " + r.status);
+      return r.json();
+    }).then(function(data) {
+      var ids = (data.items || []).map(function(it) { return it.contentDetails.videoId; });
+      acc = acc.concat(ids);
+      if (data.nextPageToken) return ytFetchAllPlaylistItems(playlistId, data.nextPageToken, acc);
+      return acc;
+    });
+  }
+
+  function ytFetchVideoStats(videoIds) {
+    var chunks = [];
+    for (var i = 0; i < videoIds.length; i += 50) chunks.push(videoIds.slice(i, i + 50));
+    if (!chunks.length) return Promise.resolve({ videoCount: 0, totalViews: 0, lastPublished: null });
+    return Promise.all(chunks.map(function(chunk) {
+      var url = YT_API_BASE + "videos?part=statistics,snippet&id=" + chunk.join(",") + "&key=" + YOUTUBE_API_KEY;
+      return fetch(url).then(function(r) {
+        if (!r.ok) throw new Error("videos " + r.status);
+        return r.json();
+      });
+    })).then(function(results) {
+      var totalViews = 0, lastPublished = null, count = 0;
+      results.forEach(function(res) {
+        (res.items || []).forEach(function(v) {
+          count++;
+          totalViews += parseInt((v.statistics && v.statistics.viewCount) || "0", 10);
+          var pub = v.snippet && v.snippet.publishedAt;
+          if (pub && (!lastPublished || pub > lastPublished)) lastPublished = pub;
+        });
+      });
+      return { videoCount: count, totalViews: totalViews, lastPublished: lastPublished };
+    });
+  }
+
+  function ytFetchChannelStats(handle) {
+    var url = YT_API_BASE + "channels?part=contentDetails&forHandle=" + encodeURIComponent(handle) +
+      "&key=" + YOUTUBE_API_KEY;
+    return fetch(url).then(function(r) {
+      if (!r.ok) throw new Error("channels " + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (!data.items || !data.items.length) throw new Error("channel not found for handle " + handle);
+      var uploadsPlaylist = data.items[0].contentDetails.relatedPlaylists.uploads;
+      return ytFetchAllPlaylistItems(uploadsPlaylist);
+    }).then(ytFetchVideoStats);
+  }
+
+  function refreshLiveYouTubeStats() {
+    if (YOUTUBE_API_KEY === "PASTE_YOUR_YOUTUBE_API_KEY_HERE") {
+      AGENTS.forEach(function(agent) {
+        if (!agent.youtube) return;
+        agent.stats[0].value = "—";
+        agent.stats[1].value = "—";
+        agent.stats[2].value = "—";
+        agent.statsNote = "Live YouTube stats not wired up yet — paste a YouTube Data API key into the YOUTUBE_API_KEY constant near the top of the <script> block.";
+      });
+      return;
+    }
+    AGENTS.forEach(function(agent) {
+      if (!agent.youtube || !agent.youtube.handle) return;
+      ytFetchChannelStats(agent.youtube.handle).then(function(res) {
+        agent.stats[0].value = String(res.videoCount);
+        agent.stats[1].value = res.totalViews.toLocaleString("en-US");
+        agent.stats[2].value = res.lastPublished ? ytFormatDate(res.lastPublished) : "—";
+        agent.statsNote = "Live from YouTube (" + agent.youtube.handle + ") — videos posted, total views and last-published date refresh every time this page loads, independent of whether this agent's machine is on.";
+        if (currentPanelAgentId === agent.id) openPanel(agent);
+      }).catch(function(err) {
+        console.error("Live YouTube stats fetch failed for " + agent.id, err);
+        agent.stats[0].value = "N/A";
+        agent.stats[1].value = "N/A";
+        agent.stats[2].value = "N/A";
+        agent.statsNote = "Couldn't reach the YouTube API just now (offline, or the key/quota needs checking) — figures unavailable rather than shown stale. Reload the page to retry.";
+        if (currentPanelAgentId === agent.id) openPanel(agent);
+      });
+    });
+  }
 
   var STATUS_HEX = { online: "#4fd1ff", busy: "#6ee7a8", offline: "#7b84a6", error: "#ff5d5d" };
   var STATUS_LABEL = { online: "Online", busy: "Busy", offline: "Offline", error: "Error" };
@@ -572,9 +683,13 @@ html,body{
   document.getElementById("onlineCount").textContent =
     AGENTS.filter(function(a) { return a.status === "online" || a.status === "busy"; }).length;
 
+  refreshLiveYouTubeStats();
+
   var panel = document.getElementById("panel");
+  var currentPanelAgentId = null;
   document.getElementById("panelClose").addEventListener("click", function() { panel.classList.remove("open"); });
   function openPanel(agent) {
+    currentPanelAgentId = agent.id;
     document.getElementById("panelEyebrow").textContent = agent.role;
     document.getElementById("panelName").textContent = agent.name;
     var color = STATUS_HEX[agent.status] || STATUS_HEX.offline;
