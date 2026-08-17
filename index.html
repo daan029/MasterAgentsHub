@@ -219,6 +219,19 @@ html,body{
   text-transform:uppercase;
 }
 .label .chip .dot{width:6px;height:6px;border-radius:50%;box-shadow:0 0 6px 1px currentColor;}
+.label .channel-line{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  margin-top:2px;
+  font-family:'Rajdhani',sans-serif;
+  font-size:11px;
+  letter-spacing:.02em;
+  color:var(--text-dim);
+  text-shadow:0 1px 2px rgba(0,0,0,.85);
+}
+.label .channel-line svg{flex:0 0 auto;display:block;}
 .label.hub-label{padding-bottom:70px;}
 .label.hub-label .name{
   font-size:19px;
@@ -347,6 +360,8 @@ html,body{
   .legend .row{font-size:9.5px;}
   .hint{display:none;}
   .label .name{font-size:13px;}
+  .label .channel-line{font-size:9.5px;}
+  .label .channel-line svg{width:10px;height:10px;}
   .label .chip{font-size:9px;padding:2px 7px;}
   .label.hub-label .name{font-size:15px;}
   .panel{
@@ -420,12 +435,28 @@ html,body{
       status: "offline",
       detail: "Generates, assembles and publishes Trinket Tales YouTube Shorts on a Mon/Wed/Fri schedule, staying inside a fixed monthly credit budget.",
       lastActive: "Not yet deployed",
-      youtube: { handle: "TrinketTalesYT" },
+      youtube: { handle: "TrinketTalesYT", channelTitle: "Trinket Tales" },
       stats: [
         { label: "Videos posted", value: "…" },
         { label: "Total views", value: "…" },
         { label: "Last published", value: "…" },
         { label: "Next scheduled run", value: "Manual only — Mon/Wed/Fri auto-schedule not deployed yet" }
+      ],
+      statsNote: "Loading live figures from YouTube…"
+    },
+    {
+      id: "ranking-agent",
+      name: "YouTube Agent",
+      role: "DailyWreck content pipeline",
+      status: "offline",
+      detail: "Discovers viral clips on Reddit (fails, Karen moments, worst tackles), ranks the top 5, edits them into one video with rank/reaction overlays, and uploads to DailyWreck — one video a day, once live.",
+      lastActive: "One test upload so far (17 Aug 2026, synthetic test clips — real Reddit discovery is blocked pending API approval)",
+      youtube: { handle: "dailywreck", channelTitle: "DailyWreck" },
+      stats: [
+        { label: "Videos posted", value: "…" },
+        { label: "Total views", value: "…" },
+        { label: "Last published", value: "…" },
+        { label: "Next scheduled run", value: "Manual only — blocked on Reddit API approval, daily schedule not deployed yet" }
       ],
       statsNote: "Loading live figures from YouTube…"
     }
@@ -544,6 +575,15 @@ html,body{
   var STATUS_HEX = { online: "#4fd1ff", busy: "#6ee7a8", offline: "#7b84a6", error: "#ff5d5d" };
   var STATUS_LABEL = { online: "Online", busy: "Busy", offline: "Offline", error: "Error" };
   var ORBIT_RADIUS = 230;
+
+  // Small inline YouTube "play button" mark — self-contained (no external
+  // image), used next to a channel name on any agent that has a `youtube`
+  // field.
+  var YT_ICON_SVG =
+    '<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<rect x="1" y="4" width="22" height="16" rx="5" fill="#FF0033"/>' +
+    '<path d="M10 8.3 L16.5 12 L10 15.7 Z" fill="#fff"/>' +
+    '</svg>';
 
   // ---------------------------------------------------------------------
   // Starfield (three parallax layers = the "looks 3D" trick)
@@ -668,8 +708,12 @@ html,body{
     labelEl.className = "label " + agent.status;
     labelEl.style.left = "calc(50% + " + x + "px)";
     labelEl.style.top = "calc(50% + " + y + "px)";
+    var channelLine = (agent.youtube && agent.youtube.channelTitle)
+      ? '<div class="channel-line">' + YT_ICON_SVG + '<span>' + agent.youtube.channelTitle + '</span></div>'
+      : '';
     labelEl.innerHTML =
       '<div class="name">' + agent.name + '</div>' +
+      channelLine +
       '<div class="chip"><span class="dot"></span>' + STATUS_LABEL[agent.status] + '</div>';
     labelEl.addEventListener("click", function() { openPanel(agent); });
     labelsHost.appendChild(labelEl);
