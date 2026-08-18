@@ -438,8 +438,11 @@ html,body{
       lastActive: "Not yet deployed",
       youtube: { handle: "TrinketTalesYT", channelTitle: "Trinket Tales" },
       stats: [
+        { label: "Subscribers", value: "…" },
         { label: "Videos posted", value: "…" },
         { label: "Total views", value: "…" },
+        { label: "Total likes", value: "…" },
+        { label: "Total comments", value: "…" },
         { label: "Last published", value: "…" },
         { label: "Next scheduled run", value: "Manual only — Mon/Wed/Fri auto-schedule not deployed yet" }
       ],
@@ -454,8 +457,11 @@ html,body{
       lastActive: "One test upload so far (17 Aug 2026, synthetic test clips — real Reddit discovery is blocked pending API approval)",
       youtube: { handle: "dailywreck", channelTitle: "DailyWreck" },
       stats: [
+        { label: "Subscribers", value: "…" },
         { label: "Videos posted", value: "…" },
         { label: "Total views", value: "…" },
+        { label: "Total likes", value: "…" },
+        { label: "Total comments", value: "…" },
         { label: "Last published", value: "…" },
         { label: "Next scheduled run", value: "Manual only — blocked on Reddit API approval, daily schedule not deployed yet" }
       ],
@@ -509,7 +515,9 @@ html,body{
   function ytFetchVideoStats(videoIds) {
     var chunks = [];
     for (var i = 0; i < videoIds.length; i += 50) chunks.push(videoIds.slice(i, i + 50));
-    if (!chunks.length) return Promise.resolve({ videoCount: 0, totalViews: 0, lastPublished: null });
+    if (!chunks.length) {
+      return Promise.resolve({ videoCount: 0, totalViews: 0, totalLikes: 0, totalComments: 0, lastPublished: null });
+    }
     return Promise.all(chunks.map(function(chunk) {
       var url = YT_API_BASE + "videos?part=statistics,snippet&id=" + chunk.join(",") + "&key=" + YOUTUBE_API_KEY;
       return fetch(url).then(function(r) {
@@ -517,39 +525,53 @@ html,body{
         return r.json();
       });
     })).then(function(results) {
-      var totalViews = 0, lastPublished = null, count = 0;
+      // likeCount/commentCount are simply absent from a video's `statistics`
+      // when the creator hid likes or disabled comments on that video (not
+      // an error) — treated as 0 for that video, so the total is a floor,
+      // not necessarily the true total if any video does either of those.
+      var totalViews = 0, totalLikes = 0, totalComments = 0, lastPublished = null, count = 0;
       results.forEach(function(res) {
         (res.items || []).forEach(function(v) {
           count++;
-          totalViews += parseInt((v.statistics && v.statistics.viewCount) || "0", 10);
+          var s = v.statistics || {};
+          totalViews += parseInt(s.viewCount || "0", 10);
+          totalLikes += parseInt(s.likeCount || "0", 10);
+          totalComments += parseInt(s.commentCount || "0", 10);
           var pub = v.snippet && v.snippet.publishedAt;
           if (pub && (!lastPublished || pub > lastPublished)) lastPublished = pub;
         });
       });
-      return { videoCount: count, totalViews: totalViews, lastPublished: lastPublished };
+      return { videoCount: count, totalViews: totalViews, totalLikes: totalLikes, totalComments: totalComments, lastPublished: lastPublished };
     });
   }
 
   function ytFetchChannelStats(handle) {
-    var url = YT_API_BASE + "channels?part=contentDetails&forHandle=" + encodeURIComponent(handle) +
+    var url = YT_API_BASE + "channels?part=statistics,contentDetails&forHandle=" + encodeURIComponent(handle) +
       "&key=" + YOUTUBE_API_KEY;
     return fetch(url).then(function(r) {
       if (!r.ok) throw new Error("channels " + r.status);
       return r.json();
     }).then(function(data) {
       if (!data.items || !data.items.length) throw new Error("channel not found for handle " + handle);
-      var uploadsPlaylist = data.items[0].contentDetails.relatedPlaylists.uploads;
-      return ytFetchAllPlaylistItems(uploadsPlaylist);
-    }).then(ytFetchVideoStats);
+      var channel = data.items[0];
+      var chStats = channel.statistics || {};
+      // A channel can hide its subscriber count publicly — the API then
+      // omits subscriberCount entirely rather than returning 0, so treat
+      // "hidden" as its own state, not a zero.
+      var subscriberCount = chStats.hiddenSubscriberCount ? null : parseInt(chStats.subscriberCount || "0", 10);
+      var uploadsPlaylist = channel.contentDetails.relatedPlaylists.uploads;
+      return ytFetchAllPlaylistItems(uploadsPlaylist).then(ytFetchVideoStats).then(function(videoRes) {
+        videoRes.subscriberCount = subscriberCount;
+        return videoRes;
+      });
+    });
   }
 
   function refreshLiveYouTubeStats() {
     if (YOUTUBE_API_KEY === "PASTE_YOUR_YOUTUBE_API_KEY_HERE") {
       AGENTS.forEach(function(agent) {
         if (!agent.youtube) return;
-        agent.stats[0].value = "—";
-        agent.stats[1].value = "—";
-        agent.stats[2].value = "—";
+        for (var i = 0; i < 5; i++) agent.stats[i].value = "—";
         agent.statsNote = "Live YouTube stats not wired up yet — paste a YouTube Data API key into the YOUTUBE_API_KEY constant near the top of the <script> block.";
       });
       return;
@@ -557,10 +579,13 @@ html,body{
     AGENTS.forEach(function(agent) {
       if (!agent.youtube || !agent.youtube.handle) return;
       ytFetchChannelStats(agent.youtube.handle).then(function(res) {
-        agent.stats[0].value = String(res.videoCount);
-        agent.stats[1].value = res.totalViews.toLocaleString("en-US");
-        agent.stats[2].value = res.lastPublished ? ytFormatDate(res.lastPublished) : "—";
-        agent.statsNote = "Live from YouTube (" + agent.youtube.handle + ") — videos posted, total views and last-published date refresh every time this page loads, independent of whether this agent's machine is on.";
+        agent.stats[0].value = res.subscriberCount === null ? "Hidden by channel" : res.subscriberCount.toLocaleString("en-US");
+        agent.stats[1].value = String(res.videoCount);
+        agent.stats[2].value = res.totalViews.toLocaleString("en-US");
+        agent.stats[3].value = res.totalLikes.toLocaleString("en-US");
+        agent.stats[4].value = res.totalComments.toLocaleString("en-US");
+        agent.stats[5].value = res.lastPublished ? ytFormatDate(res.lastPublished) : "—";
+        agent.statsNote = "Live from YouTube (" + agent.youtube.handle + ") — subscribers, videos posted, total views/likes/comments and last-published date refresh every time this page loads, independent of whether this agent's machine is on. Likes/comments are summed per-video, so a video with likes hidden or comments disabled counts as 0 for that video.";
         // Online here means "we just heard back from YouTube for this
         // agent" — NOT "the production automation is currently running".
         // Busy/Error need a real signal from the pipeline itself (it
@@ -574,9 +599,7 @@ html,body{
         if (currentPanelAgentId === agent.id) openPanel(agent);
       }).catch(function(err) {
         console.error("Live YouTube stats fetch failed for " + agent.id, err);
-        agent.stats[0].value = "N/A";
-        agent.stats[1].value = "N/A";
-        agent.stats[2].value = "N/A";
+        for (var i = 0; i < 5; i++) agent.stats[i].value = "N/A";
         agent.statsNote = "Couldn't reach the YouTube API just now (offline, or the key/quota needs checking) — figures unavailable rather than shown stale. Reload the page to retry.";
         if (agent.status !== "busy" && agent.status !== "error") {
           agent.status = "offline";
