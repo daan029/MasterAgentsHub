@@ -270,6 +270,21 @@ html,body{
 
 .hint{position:absolute;bottom:28px;right:32px;font-size:11px;color:var(--text-dim);letter-spacing:.05em;text-align:right;padding-bottom:env(safe-area-inset-bottom);}
 
+.refresh-btn{
+  position:absolute;bottom:28px;right:88px;
+  width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);background:rgba(11,15,28,.72);backdrop-filter:blur(6px);
+  color:var(--text-dim);cursor:pointer;pointer-events:auto;
+  padding:0;margin-bottom:env(safe-area-inset-bottom);
+  transition:color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.refresh-btn:hover{color:var(--hub);border-color:var(--hub-dark);}
+.refresh-btn:active{transform:scale(.92);}
+.refresh-btn svg{width:16px;height:16px;display:block;}
+.refresh-btn.spinning svg{animation:spin .7s linear;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+
 .readout{position:absolute;top:28px;right:32px;text-align:right;font-size:11px;color:var(--text-dim);letter-spacing:.05em;font-variant-numeric:tabular-nums;padding-top:env(safe-area-inset-top);}
 .readout .count{color:var(--hub);font-weight:700;font-size:13px;}
 
@@ -357,9 +372,10 @@ html,body{
   .brand .sub{display:none;}
   .readout{top:16px;right:16px;font-size:10px;}
   .readout .count{font-size:12px;}
-  .legend{bottom:auto;top:96px;left:16px;flex-direction:row;flex-wrap:wrap;gap:6px 12px;max-width:60vw;}
+  .legend{bottom:16px;top:auto;left:16px;flex-direction:row;flex-wrap:wrap;gap:6px 12px;max-width:60vw;}
   .legend .row{font-size:9.5px;}
   .hint{display:none;}
+  .refresh-btn{bottom:16px;right:16px;width:32px;height:32px;}
   .label .name{font-size:13px;}
   .label .channel-line{font-size:9.5px;}
   .label .channel-line svg{width:10px;height:10px;}
@@ -408,6 +424,12 @@ html,body{
     <div class="row"><span class="dot error"></span>Error</div>
   </div>
   <div class="hint">swipe to move around &middot; tap a node for details</div>
+  <button class="refresh-btn" id="refreshBtn" title="Refresh live stats" aria-label="Refresh live stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  </button>
   <div class="panel" id="panel">
     <button class="close" id="panelClose">&times;</button>
     <div class="eyebrow" id="panelEyebrow">Agent</div>
@@ -779,6 +801,14 @@ html,body{
 
   renderNodes();
   refreshLiveYouTubeStats();
+
+  var refreshBtn = document.getElementById("refreshBtn");
+  refreshBtn.addEventListener("click", function() {
+    refreshBtn.classList.remove("spinning");
+    void refreshBtn.offsetWidth; // restart the animation on repeat clicks
+    refreshBtn.classList.add("spinning");
+    refreshLiveYouTubeStats();
+  });
 
   var panel = document.getElementById("panel");
   var currentPanelAgentId = null;
