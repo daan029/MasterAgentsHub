@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — MasterAgentsHub</title>
+<style>
+  body{background:#05070d;color:#e6e9f5;font-family:ui-monospace,'JetBrains Mono',monospace;
+    max-width:640px;margin:0 auto;padding:40px 20px;line-height:1.6;}
+  h1{font-family:'Rajdhani',sans-serif;color:#f5b942;}
+  h2{font-family:'Rajdhani',sans-serif;color:#4fd1ff;font-size:1.1em;margin-top:1.6em;}
+  a{color:#4fd1ff;}
+  .muted{color:#7b84a6;font-size:.9em;}
+  code{color:#6ee7a8;}
+</style>
+</head>
+<body>
+  <h1>Privacy Policy</h1>
+  <p class="muted">Last updated: 2026-08-21</p>
+
+  <p>MasterAgentsHub is a personal dashboard built and operated by Daan Timmermans, for his own private
+  use only. It is not distributed to or used by any other person.</p>
+
+  <h2>What data this connects to</h2>
+  <p>This project connects to the operator's own accounts on YouTube, TikTok, and Instagram via each
+  platform's official API, solely to read public statistics (e.g. subscriber/follower count, video or
+  post count, total views/likes) for display on the dashboard. It does not access private messages,
+  contacts, or any data belonging to other users of those platforms.</p>
+
+  <h2>Where data is stored</h2>
+  <p>Fetched statistics are written to a JSON file in the project's public GitHub repository, since the
+  numbers themselves (follower counts, etc.) are already public information on the source platform.
+  OAuth credentials needed to fetch TikTok/Instagram data are stored only as encrypted
+  <a href="https://docs.github.com/actions/security-guides/using-secrets-in-github-actions">GitHub
+  Actions secrets</a> on the private automation side — they are never included in the public site or
+  repository contents, and are not accessible to anyone other than the repository owner.</p>
+
+  <h2>What this does not do</h2>
+  <p>This project does not sell, share, or otherwise disclose any data to third parties. It does not use
+  the accessed data for advertising, profiling, or any purpose beyond showing the operator his own
+  accounts' public stats. There is no user tracking, analytics, or cookies on this site beyond what the
+  hosting platform (GitHub Pages) applies by default.</p>
+
+  <h2>Revoking access</h2>
+  <p>Access can be revoked at any time from the connected account's own app-permissions settings on
+  TikTok or Meta/Instagram (Login Kit / connected apps), which immediately invalidates the associated
+  token.</p>
+
+  <p>Questions about this project can be directed to the repository at
+  <a href="https://github.com/daan029/MasterAgentsHub">github.com/daan029/MasterAgentsHub</a>.</p>
+</body>
+</html>
