@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OAuth callback — MasterAgentsHub</title>
+<style>
+  body{background:#05070d;color:#e6e9f5;font-family:ui-monospace,'JetBrains Mono',monospace;
+    max-width:640px;margin:0 auto;padding:40px 20px;line-height:1.6;}
+  h1{font-family:'Rajdhani',sans-serif;color:#f5b942;font-size:1.4em;}
+  .muted{color:#7b84a6;font-size:.9em;}
+  .box{background:#0d1226;border:1px solid #2a2f45;border-radius:8px;padding:16px;
+    word-break:break-all;user-select:all;margin:12px 0;}
+  .label{color:#4fd1ff;font-size:.85em;text-transform:uppercase;letter-spacing:.05em;}
+  button{background:#4fd1ff;color:#05070d;border:none;border-radius:6px;padding:8px 14px;
+    font-family:inherit;font-weight:600;cursor:pointer;}
+  button:active{opacity:.8;}
+  .err{color:#ff5d5d;}
+</style>
+</head>
+<body>
+  <h1>Authorization callback</h1>
+  <p class="muted">This is a one-time, single-user OAuth callback page for
+  <a href="https://github.com/daan029/MasterAgentsHub" style="color:#4fd1ff">MasterAgentsHub</a>.
+  Nothing is sent anywhere — the values below are read directly out of this page's own URL and stay
+  in your browser.</p>
+
+  <div id="result"></div>
+
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get("code");
+  var state = params.get("state");
+  var error = params.get("error");
+  var errorDesc = params.get("error_description");
+  var out = document.getElementById("result");
+
+  function block(label, value, id) {
+    var div = document.createElement("div");
+    div.innerHTML = '<div class="label">' + label + '</div>' +
+      '<div class="box" id="' + id + '">' + value + '</div>';
+    out.appendChild(div);
+  }
+
+  if (error) {
+    block("Error", error + (errorDesc ? " — " + errorDesc : ""), "err");
+    out.firstChild.querySelector(".box").classList.add("err");
+  } else if (code) {
+    block("Authorization code (copy this)", code, "codebox");
+    if (state) block("State (should match what the script printed)", state, "statebox");
+    var btn = document.createElement("button");
+    btn.textContent = "Copy code";
+    btn.onclick = function() {
+      navigator.clipboard.writeText(code).then(function() { btn.textContent = "Copied!"; });
+    };
+    out.appendChild(btn);
+    var note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = "Paste this into the waiting terminal prompt now — authorization codes expire within minutes.";
+    out.appendChild(note);
+  } else {
+    block("Nothing here", "No code or error parameter found in the URL — did you navigate here directly instead of via an OAuth redirect?", "none");
+  }
+</script>
+</body>
+</html>

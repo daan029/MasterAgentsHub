@@ -114,12 +114,16 @@ be scripted):
 
 *TikTok:* create a developer app at developers.tiktok.com for @klipje0,
 add the "Login Kit" product with scopes `user.info.basic` +
-`user.info.stats`, register redirect URI `http://localhost:8787/callback`
-(use `ngrok http 8787` instead if TikTok requires HTTPS), and if the app
-isn't through review yet, add @klipje0 as an authorized test user. Then
-run `TIKTOK_CLIENT_KEY=... TIKTOK_CLIENT_SECRET=... node
+`user.info.stats`. TikTok's Web-platform redirect URI must be on a
+verified domain (not `localhost`), so register
+`https://daan029.github.io/MasterAgentsHub/oauth-callback.html` — a
+static page in this repo that just displays the returned authorization
+code for you to copy, nothing is sent anywhere. If the app isn't through
+review yet, add @klipje0 as an authorized sandbox/test user. Then run
+`TIKTOK_CLIENT_KEY=... TIKTOK_CLIENT_SECRET=... node
 scripts/tiktok-init-auth.js` locally, open the printed URL, approve as
-@klipje0, and copy the printed refresh token.
+@klipje0, copy the code shown on the callback page, paste it back into
+the waiting terminal prompt, and copy the refresh token it prints.
 
 *Instagram/Meta:* confirm @klipje0 is a Business/Creator account linked
 to a Facebook Page you control, create a "Business" app at
