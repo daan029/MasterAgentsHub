@@ -437,6 +437,7 @@ html,body{
     <h2 id="panelName">&mdash;</h2>
     <div class="status-row" id="panelStatus"></div>
     <p id="panelDetail"></p>
+    <div class="stats-grid" id="panelPrimaryStats"></div>
     <details class="stats-toggle" id="panelStatsToggle">
       <summary>More data</summary>
       <div class="stats-grid" id="panelStatsGrid"></div>
@@ -457,7 +458,7 @@ html,body{
       name: "YouTube Agent",
       role: "Trinket Tales content pipeline",
       status: "offline",
-      detail: "Generates, assembles and publishes Trinket Tales YouTube Shorts on a Mon/Wed/Fri schedule, staying inside a fixed monthly credit budget.",
+      detail: "Publishes Trinket Tales YouTube Shorts on a Mon/Wed/Fri schedule.",
       lastActive: "Not yet deployed",
       youtube: { handle: "TrinketTalesYT", channelTitle: "Trinket Tales" },
       stats: [
@@ -476,7 +477,7 @@ html,body{
       name: "YouTube Agent",
       role: "DailyWreck content pipeline",
       status: "offline",
-      detail: "Discovers viral clips on Reddit (fails, Karen moments, worst tackles), ranks the top 5, edits them into one video with rank/reaction overlays, and uploads to DailyWreck — one video a day, once live.",
+      detail: "Ranks viral Reddit clips into one daily DailyWreck video.",
       lastActive: "One test upload so far (17 Aug 2026, synthetic test clips — real Reddit discovery is blocked pending API approval)",
       youtube: { handle: "dailywreck", channelTitle: "DailyWreck" },
       stats: [
@@ -495,7 +496,7 @@ html,body{
       name: "Klipje Agent",
       role: "ClipArmy clipping pipeline (NL)",
       status: "busy",
-      detail: "Clips ClipArmy campaign source videos into short-form edits and publishes them across YouTube Shorts, TikTok and Instagram Reels for the Dutch 'Klipje' brand. Currently running the Supergaande campaign — 3 clips on a staggered rollout across all 3 platforms.",
+      detail: "Clips ClipArmy campaigns for YouTube Shorts, TikTok and Instagram under the Klipje (NL) brand.",
       lastActive: "21 Aug 2026 — Supergaande campaign: clip 1 live on all 3 platforms, clips 2 & 3 scheduled",
       youtube: { handle: "klipje", channelTitle: "Klipje" },
       // Renders as 3 small clustered nodes (one per platform) instead of
@@ -857,31 +858,34 @@ html,body{
     { dx: 17, dy: 12 }
   ];
 
-  // Renders one small clickable node per platform, clustered tightly around
-  // the orbit slot (x,y) instead of the usual single big sphere — used for
-  // agents that bundle several platforms under one identity (see
+  // Brand color per platform — the cluster mini-nodes are shaded spheres
+  // (same radial-gradient recipe as the main .node "planet") tinted by
+  // platform rather than by status, so each reads as its own little planet.
+  var PLATFORM_COLORS = { youtube: "#FF0033", tiktok: "#25F4EE", instagram: "#C13584" };
+
+  // Renders one small clickable "planet" per platform, clustered tightly
+  // around the orbit slot (x,y) instead of the usual single big sphere —
+  // used for agents that bundle several platforms under one identity (see
   // `platforms` on an agent). All mini-nodes open the same detail panel.
   function buildClusterNodes(agent, cx, cy, statusColor, isOffline) {
     agent.platforms.forEach(function(p, i) {
       var off = CLUSTER_OFFSETS[i % CLUSTER_OFFSETS.length];
       var px = cx + off.dx, py = cy + off.dy;
+      var pColor = PLATFORM_COLORS[p.key] || statusColor;
       var el = document.createElement("div");
       el.className = "node cluster-node";
       el.style.left = "calc(50% + " + px + "px)";
       el.style.top = "calc(50% + " + py + "px)";
-      el.style.width = "28px";
-      el.style.height = "28px";
-      el.style.margin = "-14px 0 0 -14px";
-      el.style.borderRadius = "8px";
-      el.style.display = "flex";
-      el.style.alignItems = "center";
-      el.style.justifyContent = "center";
-      el.style.background = "rgba(10,13,24,.9)";
+      el.style.width = "26px";
+      el.style.height = "26px";
+      el.style.margin = "-13px 0 0 -13px";
+      el.style.background = isOffline
+        ? "radial-gradient(circle at 34% 28%, #b7bdd6 0%, " + pColor + " 55%, #2a2f45 100%)"
+        : "radial-gradient(circle at 34% 28%, #ffffff 0%, " + pColor + " 45%, #10141f 100%)";
       el.style.boxShadow = isOffline
-        ? "0 0 10px 2px " + statusColor + "50"
-        : "0 0 14px 4px " + statusColor + "70";
+        ? "0 0 10px 2px " + pColor + "55, inset -4px -4px 8px rgba(0,0,0,.4)"
+        : "0 0 16px 5px " + pColor + "80, 0 0 32px 10px " + pColor + "30, inset -4px -4px 8px rgba(0,0,0,.4)";
       el.title = p.label;
-      el.innerHTML = platformIconSvg(p.key, 22);
       el.addEventListener("click", function() { openPanel(agent); });
       nodesHost.appendChild(el);
     });
@@ -931,12 +935,25 @@ html,body{
     document.getElementById("panelDetail").textContent = agent.detail;
     document.getElementById("panelLastActive").textContent = agent.lastActive || "—";
 
+    function statTile(s) {
+      return '<div class="stat-tile"><div class="stat-label">' + s.label + '</div><div class="stat-value">' + s.value + '</div></div>';
+    }
+
+    // The 4 stats people check at a glance (Subscribers, Videos posted,
+    // Total views, Total likes — always stats[0..3], see how the live
+    // YouTube fetch writes into this array) stay visible without a click;
+    // everything else moves into the "More data" toggle.
+    var primaryEl = document.getElementById("panelPrimaryStats");
+    var PRIMARY_COUNT = 4;
+    var primaryStats = (agent.stats || []).slice(0, PRIMARY_COUNT);
+    var restStats = (agent.stats || []).slice(PRIMARY_COUNT);
+    primaryEl.innerHTML = primaryStats.map(statTile).join("");
+    primaryEl.style.display = primaryStats.length ? "" : "none";
+
     var statsToggle = document.getElementById("panelStatsToggle");
-    if (agent.stats && agent.stats.length) {
+    if (restStats.length) {
       var grid = document.getElementById("panelStatsGrid");
-      grid.innerHTML = agent.stats.map(function(s) {
-        return '<div class="stat-tile"><div class="stat-label">' + s.label + '</div><div class="stat-value">' + s.value + '</div></div>';
-      }).join("");
+      grid.innerHTML = restStats.map(statTile).join("");
       document.getElementById("panelStatsNote").textContent = agent.statsNote || "";
       statsToggle.style.display = "";
       statsToggle.open = false;
