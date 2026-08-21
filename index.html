@@ -628,7 +628,8 @@ html,body{
       AGENTS.forEach(function(agent) {
         if (!agent.youtube) return;
         for (var i = 0; i < 5; i++) agent.stats[i].value = "—";
-        agent.statsNote = "Live YouTube stats not wired up yet — paste a YouTube Data API key into the YOUTUBE_API_KEY constant near the top of the <script> block.";
+        agent.ytNote = "Live YouTube stats not wired up yet — paste a YouTube Data API key into the YOUTUBE_API_KEY constant near the top of the <script> block.";
+        agent.statsNote = [agent.ytNote, agent.socialNote].filter(Boolean).join(" ");
       });
       return;
     }
@@ -641,7 +642,8 @@ html,body{
         agent.stats[3].value = res.totalLikes.toLocaleString("en-US");
         agent.stats[4].value = res.totalComments.toLocaleString("en-US");
         agent.stats[5].value = res.lastPublished ? ytFormatDate(res.lastPublished) : "—";
-        agent.statsNote = "Live from YouTube (" + agent.youtube.handle + ") — subscribers, videos posted, total views/likes/comments and last-published date refresh every time this page loads, independent of whether this agent's machine is on. Likes/comments are summed per-video, so a video with likes hidden or comments disabled counts as 0 for that video.";
+        agent.ytNote = "Live from YouTube (" + agent.youtube.handle + ") — subscribers, videos posted, total views/likes/comments and last-published date refresh every time this page loads, independent of whether this agent's machine is on. Likes/comments are summed per-video, so a video with likes hidden or comments disabled counts as 0 for that video.";
+        agent.statsNote = [agent.ytNote, agent.socialNote].filter(Boolean).join(" ");
         // Online here means "we just heard back from YouTube for this
         // agent" — NOT "the production automation is currently running".
         // Busy/Error need a real signal from the pipeline itself (it
@@ -656,13 +658,70 @@ html,body{
       }).catch(function(err) {
         console.error("Live YouTube stats fetch failed for " + agent.id, err);
         for (var i = 0; i < 5; i++) agent.stats[i].value = "N/A";
-        agent.statsNote = "Couldn't reach the YouTube API just now (offline, or the key/quota needs checking) — figures unavailable rather than shown stale. Reload the page to retry.";
+        agent.ytNote = "Couldn't reach the YouTube API just now (offline, or the key/quota needs checking) — figures unavailable rather than shown stale. Reload the page to retry.";
+        agent.statsNote = [agent.ytNote, agent.socialNote].filter(Boolean).join(" ");
         if (agent.status !== "busy" && agent.status !== "error") {
           agent.status = "offline";
         }
         renderNodes();
         if (currentPanelAgentId === agent.id) openPanel(agent);
       });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Live TikTok/Instagram stats for Klipje — unlike YouTube these platforms
+  // have no public key-only read API, so a scheduled GitHub Actions job
+  // (.github/workflows/social-stats.yml) holds the OAuth tokens server-side,
+  // refreshes them, and commits social-stats.json to the repo every ~6h.
+  // This just does a same-origin fetch of that static file — no secrets
+  // ever touch the browser. See README.md for the full setup.
+  // ---------------------------------------------------------------------
+
+  function socialFmtCount(n) {
+    return (typeof n === "number") ? n.toLocaleString("en-US") : null;
+  }
+
+  function setStatByLabel(agent, label, value) {
+    var stat = (agent.stats || []).filter(function(s) { return s.label === label; })[0];
+    if (stat) stat.value = value;
+  }
+
+  function applySocialStats(agent, data) {
+    if (data.tiktok) {
+      var followers = socialFmtCount(data.tiktok.followers);
+      var videos = socialFmtCount(data.tiktok.videos);
+      setStatByLabel(agent, "TikTok", followers !== null
+        ? followers + " followers, " + videos + " videos"
+        : "N/A");
+    }
+    if (data.instagram) {
+      var igFollowers = socialFmtCount(data.instagram.followers);
+      var igPosts = socialFmtCount(data.instagram.posts);
+      setStatByLabel(agent, "Instagram (@klipje0)", igFollowers !== null
+        ? igFollowers + " followers, " + igPosts + " posts"
+        : "N/A");
+    }
+    agent.socialNote = "TikTok/Instagram followers refresh roughly every 6h via a scheduled job" +
+      (data.generatedAt ? " (last run " + ytFormatDate(data.generatedAt) + ")" : "") + ".";
+    agent.statsNote = [agent.ytNote, agent.socialNote].filter(Boolean).join(" ");
+  }
+
+  function refreshSocialStats() {
+    var klipje = AGENTS.filter(function(a) { return a.id === "klipje-nl-agent"; })[0];
+    if (!klipje) return;
+    fetch("./social-stats.json", { cache: "no-store" }).then(function(r) {
+      if (!r.ok) throw new Error("social-stats.json " + r.status);
+      return r.json();
+    }).then(function(data) {
+      applySocialStats(klipje, data);
+      renderNodes();
+      if (currentPanelAgentId === klipje.id) openPanel(klipje);
+    }).catch(function(err) {
+      // Expected before the workflow's first successful run, or on a
+      // transient network blip — leave the "stats not wired up" placeholder
+      // in place rather than showing an alarming error.
+      console.warn("social-stats.json not available yet", err);
     });
   }
 
@@ -918,6 +977,7 @@ html,body{
 
   renderNodes();
   refreshLiveYouTubeStats();
+  refreshSocialStats();
 
   var refreshBtn = document.getElementById("refreshBtn");
   refreshBtn.addEventListener("click", function() {
@@ -925,6 +985,7 @@ html,body{
     void refreshBtn.offsetWidth; // restart the animation on repeat clicks
     refreshBtn.classList.add("spinning");
     refreshLiveYouTubeStats();
+    refreshSocialStats();
   });
 
   var panel = document.getElementById("panel");
