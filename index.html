@@ -195,6 +195,10 @@ html,body{
   white-space:nowrap;
   cursor:pointer;
 }
+/* Clustered agents (see buildClusterNodes) anchor their label below the
+   whole cluster instead of above a single node — text grows downward
+   from the anchor instead of upward into it. */
+.label.below{transform:translate(-50%,0);padding-bottom:0;padding-top:16px;}
 .label .name{
   font-family:'Rajdhani',sans-serif;
   font-weight:600;
@@ -829,11 +833,15 @@ html,body{
       nodesHost.appendChild(el);
     }
 
-    // label
+    // label — clustered agents sit below the whole cluster (past the
+    // bottom-most mini-planet), not at the orbit slot center, otherwise it
+    // lands right on top of the first platform's node.
+    var isCluster = agent.platforms && agent.platforms.length > 1;
+    var labelY = isCluster ? y + 25 : y;
     var labelEl = document.createElement("div");
-    labelEl.className = "label " + agent.status;
+    labelEl.className = "label " + agent.status + (isCluster ? " below" : "");
     labelEl.style.left = "calc(50% + " + x + "px)";
-    labelEl.style.top = "calc(50% + " + y + "px)";
+    labelEl.style.top = "calc(50% + " + labelY + "px)";
     var channelLine = (agent.platforms && agent.platforms.length > 1)
       ? '<div class="channel-line">' + agent.platforms.map(function(p) { return platformIconSvg(p.key, 12); }).join("") + '</div>'
       : (agent.youtube && agent.youtube.channelTitle)
