@@ -488,6 +488,27 @@ html,body{
         { label: "Next scheduled run", value: "Manual only — blocked on Reddit API approval, daily schedule not deployed yet" }
       ],
       statsNote: "Loading live figures from YouTube…"
+    },
+    {
+      id: "klipje-nl-agent",
+      name: "Klipje Agent",
+      role: "ClipArmy clipping pipeline (NL)",
+      status: "busy",
+      detail: "Clips ClipArmy campaign source videos into short-form edits and publishes them across YouTube Shorts, TikTok and Instagram Reels for the Dutch 'Klipje' brand. Currently running the Supergaande campaign — 3 clips on a staggered rollout across all 3 platforms.",
+      lastActive: "21 Aug 2026 — Supergaande campaign: clip 1 live on all 3 platforms, clips 2 & 3 scheduled",
+      youtube: { handle: "klipje", channelTitle: "Klipje" },
+      stats: [
+        { label: "Subscribers", value: "…" },
+        { label: "Videos posted", value: "…" },
+        { label: "Total views", value: "…" },
+        { label: "Total likes", value: "…" },
+        { label: "Total comments", value: "…" },
+        { label: "Last published", value: "…" },
+        { label: "Next scheduled run", value: "Clip 2 -> 19:00 today, Clip 3 -> 08:00 tomorrow (TikTok + Instagram via a scheduled cloud routine; YouTube uses native publishAt scheduling)" },
+        { label: "TikTok", value: "Posting live (clip 1 published) - follower/view stats not wired up: would need a write-capable token exposed client-side, which this static public page deliberately avoids" },
+        { label: "Instagram (@klipje0)", value: "Posting live (clip 1 published) - follower/view stats not wired up, same reason as TikTok" }
+      ],
+      statsNote: "Loading live figures from YouTube…"
     }
   ];
 
