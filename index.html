@@ -711,6 +711,31 @@ html,body{
     return ytIconSvg(size);
   }
 
+  // Glyph-only versions (no background square) for overlaying small on top
+  // of an already-colored planet sphere, where a second background box
+  // would just look like a mismatched badge stuck on a circle.
+  function ytGlyphSvg(size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M10 8.3 L16.5 12 L10 15.7 Z" fill="#fff"/>' +
+      '</svg>';
+  }
+  function tiktokGlyphSvg(size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<path d="M14.5 4.5c.4 1.7 1.6 2.9 3.4 3.2v2.6c-1.2 0-2.4-.4-3.4-1.1v5.9c0 2.7-2.2 4.9-4.9 4.9S4.7 17.8 4.7 15.1c0-2.6 2-4.7 4.6-4.9v2.7c-1.1.2-2 1.1-2 2.2 0 1.3 1 2.3 2.3 2.3s2.3-1 2.3-2.3V4.5h2.6z" fill="#fff"/>' +
+      '</svg>';
+  }
+  function igGlyphSvg(size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<circle cx="12" cy="12" r="5.2" fill="none" stroke="#fff" stroke-width="2"/>' +
+      '<circle cx="17.6" cy="6.4" r="1.4" fill="#fff"/>' +
+      '</svg>';
+  }
+  function platformGlyphSvg(key, size) {
+    if (key === "tiktok") return tiktokGlyphSvg(size);
+    if (key === "instagram") return igGlyphSvg(size);
+    return ytGlyphSvg(size);
+  }
+
   // ---------------------------------------------------------------------
   // Starfield (three parallax layers = the "looks 3D" trick)
   // ---------------------------------------------------------------------
@@ -893,6 +918,10 @@ html,body{
       el.style.boxShadow = isOffline
         ? "0 0 10px 2px " + pColor + "55, inset -4px -4px 8px rgba(0,0,0,.4)"
         : "0 0 16px 5px " + pColor + "80, 0 0 32px 10px " + pColor + "30, inset -4px -4px 8px rgba(0,0,0,.4)";
+      el.style.display = "flex";
+      el.style.alignItems = "center";
+      el.style.justifyContent = "center";
+      el.innerHTML = platformGlyphSvg(p.key, 13);
       el.title = p.label;
       el.addEventListener("click", function() { openPanel(agent); });
       nodesHost.appendChild(el);
