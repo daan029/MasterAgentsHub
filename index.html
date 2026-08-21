@@ -352,7 +352,7 @@ html,body{
 .panel .stat-tile .stat-value{
   font-family:'Rajdhani',sans-serif;
   font-weight:700;
-  font-size:18px;
+  font-size:14px;
   color:var(--text);
   margin-top:2px;
   font-variant-numeric:tabular-nums;
@@ -466,7 +466,7 @@ html,body{
         { label: "Total likes", value: "…" },
         { label: "Total comments", value: "…" },
         { label: "Last published", value: "…" },
-        { label: "Next scheduled run", value: "Manual only — Mon/Wed/Fri auto-schedule not deployed yet" }
+        { label: "Next scheduled run", value: "Manual only (not deployed)" }
       ],
       statsNote: "Loading live figures from YouTube…"
     },
@@ -485,7 +485,7 @@ html,body{
         { label: "Total likes", value: "…" },
         { label: "Total comments", value: "…" },
         { label: "Last published", value: "…" },
-        { label: "Next scheduled run", value: "Manual only — blocked on Reddit API approval, daily schedule not deployed yet" }
+        { label: "Next scheduled run", value: "Blocked on Reddit API" }
       ],
       statsNote: "Loading live figures from YouTube…"
     },
@@ -504,9 +504,9 @@ html,body{
         { label: "Total likes", value: "…" },
         { label: "Total comments", value: "…" },
         { label: "Last published", value: "…" },
-        { label: "Next scheduled run", value: "Clip 2 -> 19:00 today, Clip 3 -> 08:00 tomorrow (TikTok + Instagram via a scheduled cloud routine; YouTube uses native publishAt scheduling)" },
-        { label: "TikTok", value: "Posting live (clip 1 published) - follower/view stats not wired up: would need a write-capable token exposed client-side, which this static public page deliberately avoids" },
-        { label: "Instagram (@klipje0)", value: "Posting live (clip 1 published) - follower/view stats not wired up, same reason as TikTok" }
+        { label: "Next scheduled run", value: "Clip 2: 19:00, Clip 3: 08:00" },
+        { label: "TikTok", value: "Posting live — stats not wired up" },
+        { label: "Instagram (@klipje0)", value: "Posting live — stats not wired up" }
       ],
       statsNote: "Loading live figures from YouTube…"
     }
@@ -833,7 +833,7 @@ html,body{
 
   var panel = document.getElementById("panel");
   var currentPanelAgentId = null;
-  document.getElementById("panelClose").addEventListener("click", function() { panel.classList.remove("open"); });
+  document.getElementById("panelClose").addEventListener("click", function() { panel.classList.remove("open"); currentPanelAgentId = null; });
   function openPanel(agent) {
     currentPanelAgentId = agent.id;
     document.getElementById("panelEyebrow").textContent = agent.role;
