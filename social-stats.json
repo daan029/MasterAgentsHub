@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-08-27T22:06:55.441Z",
+  "generatedAt": "2026-08-28T10:56:05.382Z",
   "tiktok": {
     "status": "error",
-    "lastAttemptAt": "2026-08-27T22:06:55.438Z",
+    "lastAttemptAt": "2026-08-28T10:56:05.380Z",
     "error": "missing TikTok env vars"
   },
   "instagram": {
     "status": "error",
-    "lastAttemptAt": "2026-08-27T22:06:55.439Z",
+    "lastAttemptAt": "2026-08-28T10:56:05.380Z",
     "error": "missing Meta env vars"
   }
 }
